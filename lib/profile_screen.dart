@@ -60,18 +60,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user == null) {
       return;
     }
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
-      {
-        'nick': trimmed,
-        'email': user.email,
-        'lastLoginAt': user.metadata.lastSignInTime,
-        'createdAt': user.metadata.creationTime,
-      },
-      SetOptions(merge: true),
-    );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pomyślnie zapisano')));
-    await _refreshProfile();
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
+        {
+          'nick': trimmed,
+          'email': user.email,
+          'lastLoginAt': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pomyślnie zapisano')));
+      await _refreshProfile();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Błąd zapisu: $e')));
+    }
   }
 
   Future<void> _showEditNickDialog(String? currentNick) async {
