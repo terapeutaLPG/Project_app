@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart' as geo;
@@ -9,6 +10,8 @@ import 'models/tile_model.dart';
 import 'models/tile_calculator.dart';
 import 'models/place.dart';
 import 'dart:async';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -334,10 +337,11 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
           geometry: Point(coordinates: Position(place.lon, place.lat)),
           textField: place.name,
           textSize: 10,
-          textOffset: [0.0, 1.5],
+          textOffset: [0.0, 2.0],
           iconImage: "marker-15",
-          iconSize: 1.2,
+          iconSize: 1.8,
           iconColor: claimed ? Colors.green.value : Colors.red.value,
+          iconOpacity: 1.0,
         ),
       );
       _placeAnnotations.add(annotation);
@@ -470,7 +474,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
 
     _claimedPlaceIds.add(place.id);
     
-    // Zmienia ikonkę na zielone
+    // Zmienia ikonkę na zieloną
     annotation.iconColor = Colors.green.value;
     await _placeManager?.update(annotation);
 
