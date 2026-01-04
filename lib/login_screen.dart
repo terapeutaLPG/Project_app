@@ -1,6 +1,7 @@
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/map_screen.dart';
 import 'package:flutter_application_1/profile_screen.dart';
 import 'package:flutter_application_1/registration_screen.dart';
 
@@ -77,14 +78,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         letterSpacing: 0.8,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Zaloguj się, aby kontynuować',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: Colors.white.withOpacity(0.85),
-                      ),
-                    ),
                     const SizedBox(height: 20),
                     Center(
                       child: ClipRRect(
@@ -155,6 +148,23 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             onPressed: _logout,
             child: const Text('Wyloguj'),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              foregroundColor: theme.primaryColor,
+              backgroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              side: BorderSide(color: theme.primaryColor.withOpacity(0.4)),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MapScreen()),
+              );
+            },
+            child: const Text('Przejście do mapy'),
           ),
         ],
       ),
