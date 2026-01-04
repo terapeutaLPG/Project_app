@@ -51,7 +51,15 @@ class _MapScreenState extends State<MapScreen> {
     ));
 
     try {
-      final position = await geo.Geolocator.getCurrentPosition();
+      final position = await geo.Geolocator.getCurrentPosition(
+        locationSettings: const geo.LocationSettings(
+          accuracy: geo.LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+      
+      await _processLocation(position.latitude, position.longitude);
+      
       await mapboxMap!.flyTo(
         CameraOptions(
           center: Point(coordinates: Position(position.longitude, position.latitude)),
@@ -59,17 +67,29 @@ class _MapScreenState extends State<MapScreen> {
         ),
         MapAnimationOptions(duration: 1000),
       );
-      
-      await _processLocation(position.latitude, position.longitude);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nie udalo sie pobrac lokalizacji'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text('Blad lokalizacji: $e'),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
+      
+      try {
+        final lastPosition = await geo.Geolocator.getLastKnownPosition();
+        if (lastPosition != null) {
+          await _processLocation(lastPosition.latitude, lastPosition.longitude);
+          await mapboxMap!.flyTo(
+            CameraOptions(
+              center: Point(coordinates: Position(lastPosition.longitude, lastPosition.latitude)),
+              zoom: 16.0,
+            ),
+            MapAnimationOptions(duration: 1000),
+          );
+        }
+      } catch (_) {}
     }
     
     _startLocationStream();
