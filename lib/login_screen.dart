@@ -84,7 +84,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Colors.white.withOpacity(0.85),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          'logowanie-ikona.jpeg',
+                          height: 160,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     _user != null ? _buildLoggedInView(theme) : _buildLoginForm(theme),
                   ],
                 ),
