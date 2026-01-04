@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -26,10 +26,10 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _checkAndRequestLocationPermission() async {
     bool serviceEnabled;
-    LocationPermission permission;
+    geo.LocationPermission permission;
 
     // Sprawdź czy usługi lokalizacji są włączone
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -43,11 +43,11 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     // Sprawdź status uprawnień
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
+    permission = await geo.Geolocator.checkPermission();
+    if (permission == geo.LocationPermission.denied) {
       // Poproś o uprawnienia - wyświetli systemowy dialog
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
+      permission = await geo.Geolocator.requestPermission();
+      if (permission == geo.LocationPermission.denied) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -60,7 +60,7 @@ class _MapScreenState extends State<MapScreen> {
       }
     }
 
-    if (permission == LocationPermission.deniedForever) {
+    if (permission == geo.LocationPermission.deniedForever) {
       // Uprawnienia odrzucone na stałe
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
