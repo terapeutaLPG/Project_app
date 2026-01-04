@@ -22,6 +22,7 @@ class _MapScreenState extends State<MapScreen> {
   final Map<String, PolygonAnnotation> _tilePolygons = {};
   StreamSubscription<geo.Position>? _positionStreamSubscription;
   String? _currentTileId;
+  int _discoveredTilesCount = 0;
 
   @override
   void initState() {
@@ -172,6 +173,10 @@ class _MapScreenState extends State<MapScreen> {
     
     final tiles = await _tileService.getDiscoveredTiles();
     
+    setState(() {
+      _discoveredTilesCount = tiles.length;
+    });
+    
     for (var tile in tiles) {
       await _drawTileOnMap(tile);
     }
@@ -197,6 +202,10 @@ class _MapScreenState extends State<MapScreen> {
 
     final polygon = await _polygonManager!.create(polygonOptions);
     _tilePolygons[tile.tileId] = polygon;
+    
+    setState(() {
+      _discoveredTilesCount = _tilePolygons.length;
+    });
   }
 
   @override
@@ -220,8 +229,31 @@ class _MapScreenState extends State<MapScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mapa'),
+        title: Row(
+          children: [
+            const Text('Mapa'),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.purple,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$_discoveredTilesCount',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: _showClearMapDialog,
+          ),
           if (_locationPermissionGranted)
             const Icon(Icons.location_on, color: Colors.green)
           else
@@ -239,5 +271,53 @@ class _MapScreenState extends State<MapScreen> {
         onMapCreated: _onMapCreated,
       ),
     );
+  }
+
+  void _showClearMapDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Wyczysc mape'),
+        content: const Text('Czy na pewno chcesz usunac wszystkie odkryte kratki?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Anuluj'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _clearMap();
+            },
+            child: const Text('Usun', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _clearMap() async {
+    await _tileService.clearAllTiles();
+    
+    if (_polygonManager != null) {
+      for (var polygon in _tilePolygons.values) {
+        await _polygonManager!.delete(polygon);
+      }
+    }
+    
+    setState(() {
+      _tilePolygons.clear();
+      _discoveredTilesCount = 0;
+      _currentTileId = null;
+    });
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mapa wyczyszczona'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 }
