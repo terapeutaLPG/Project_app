@@ -51,8 +51,8 @@ class _MapScreenState extends State<MapScreen> {
       body: MapWidget(
         key: const ValueKey("mapWidget"),
         cameraOptions: CameraOptions(
-          center: Point(coordinates: Position(19.9449799, 50.0646501)),
-          zoom: 10.0,
+          center: Point(coordinates: Position(17.0326, 51.1097)),
+          zoom: 15.0,
         ),
         styleUri: MapboxStyles.MAPBOX_STREETS,
         onMapCreated: _onMapCreated,
