@@ -8,16 +8,27 @@ class ProfileScreen extends StatelessWidget {
   Future<Map<String, dynamic>> _fetchProfile() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      return {};
+      return {
+        'email': '-'
+      };
     }
-    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    final data = doc.data() ?? {};
-    return {
-      'email': data['email'] ?? user.email,
-      'createdAt': data['createdAt'] ?? user.metadata.creationTime,
-      'lastLoginAt': data['lastLoginAt'] ?? user.metadata.lastSignInTime,
-      'nick': data['nick'],
-    };
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final data = doc.data() ?? {};
+      return {
+        'email': data['email'] ?? user.email ?? '-',
+        'createdAt': data['createdAt'] ?? user.metadata.creationTime,
+        'lastLoginAt': data['lastLoginAt'] ?? user.metadata.lastSignInTime,
+        'nick': data['nick'],
+      };
+    } catch (_) {
+      return {
+        'email': user.email ?? '-',
+        'createdAt': user.metadata.creationTime,
+        'lastLoginAt': user.metadata.lastSignInTime,
+        'nick': null,
+      };
+    }
   }
 
   String _formatDate(dynamic value) {
@@ -45,10 +56,7 @@ class ProfileScreen extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(child: Text('Brak danych profilu'));
-          }
-          final data = snapshot.data!;
+          final data = snapshot.data ?? {};
           final email = data['email'] as String? ?? '-';
           final createdAt = _formatDate(data['createdAt']);
           final lastLoginAt = _formatDate(data['lastLoginAt']);
@@ -64,7 +72,7 @@ class ProfileScreen extends StatelessWidget {
               const Divider(),
               ListTile(
                 title: const Text('Nick'),
-                subtitle: Text(nick?.isNotEmpty == true ? nick! : '-'),
+                subtitle: Text(nick?.isNotEmpty == true ? nick! : 'brak'),
               ),
               const Divider(),
               ListTile(
