@@ -41,10 +41,12 @@ class _MapScreenState extends State<MapScreen> {
       ),
       body: MapWidget(
         key: const ValueKey("mapWidget"),
+        resourceOptions: ResourceOptions(accessToken: token),
         cameraOptions: CameraOptions(
           center: Point(coordinates: Position(19.9449799, 50.0646501)),
           zoom: 10.0,
         ),
+        styleUri: MapboxStyles.MAPBOX_STREETS,
         onMapCreated: _onMapCreated,
       ),
     );

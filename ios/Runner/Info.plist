@@ -47,5 +47,7 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
-	</dict>
-</plist>
+	<key>MBXAccessToken</key>
+	<string>pk.eyJ1Ijoic2ltb3hrc3kiLCJhIjoiY21qenBwa2I1MHEweTNmc2NzdnZwMjJkMiJ9.iBGuB-czadHmrdVUZ9g8yQ</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Ta aplikacja potrzebuje dostępu do lokalizacji aby wyświetlić mapę.</string>
