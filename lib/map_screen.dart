@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'services/tile_service.dart';
+import 'models/tile_model.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -13,6 +15,9 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   MapboxMap? mapboxMap;
   bool _locationPermissionGranted = false;
+  final TileService _tileService = TileService();
+  PolygonAnnotationManager? _polygonManager;
+  final Map<String, PolygonAnnotation> _tilePolygons = {};
 
   @override
   void initState() {
@@ -107,11 +112,48 @@ class _MapScreenState extends State<MapScreen> {
     _enableLocationTracking();
   }
 
-  _onMapCreated(MapboxMap map) {
+  _onMapCreated(MapboxMap map) async {
     mapboxMap = map;
+    
+    _polygonManager = await map.annotations.createPolygonAnnotationManager();
+    
+    await _loadDiscoveredTiles();
+    
     if (_locationPermissionGranted) {
       _enableLocationTracking();
     }
+  }
+
+  Future<void> _loadDiscoveredTiles() async {
+    if (_polygonManager == null) return;
+    
+    final tiles = await _tileService.getDiscoveredTiles();
+    
+    for (var tile in tiles) {
+      await _drawTileOnMap(tile);
+    }
+  }
+
+  Future<void> _drawTileOnMap(TileModel tile) async {
+    if (_polygonManager == null) return;
+    if (_tilePolygons.containsKey(tile.tileId)) return;
+
+    final points = [
+      Point(coordinates: Position(tile.minLon, tile.minLat)),
+      Point(coordinates: Position(tile.maxLon, tile.minLat)),
+      Point(coordinates: Position(tile.maxLon, tile.maxLat)),
+      Point(coordinates: Position(tile.minLon, tile.maxLat)),
+      Point(coordinates: Position(tile.minLon, tile.minLat)),
+    ];
+
+    final polygonOptions = PolygonAnnotationOptions(
+      geometry: Polygon(coordinates: [points.map((p) => p.coordinates).toList()]),
+      fillColor: Colors.pink.withOpacity(0.3).value,
+      fillOutlineColor: Colors.purple.value,
+    );
+
+    final polygon = await _polygonManager!.create(polygonOptions);
+    _tilePolygons[tile.tileId] = polygon;
   }
 
   @override
@@ -150,7 +192,7 @@ class _MapScreenState extends State<MapScreen> {
           center: Point(coordinates: Position(17.0326, 51.1097)),
           zoom: 15.0,
         ),
-        styleUri: MapboxStyles.MAPBOX_STREETS,
+        styleUri: MapboxStyles.DARK,
         onMapCreated: _onMapCreated,
       ),
     );
