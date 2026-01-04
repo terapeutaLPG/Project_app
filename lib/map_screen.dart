@@ -329,15 +329,14 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
 
     for (final place in places) {
       final claimed = _claimedPlaceIds.contains(place.id);
-      final iconColor = claimed ? Colors.grey.shade500.value : Colors.amber.shade400.value;
+      final iconImage = claimed ? "yes_pin_map" : "pin_map";
       final annotation = await _placeManager!.create(
         PointAnnotationOptions(
           geometry: Point(coordinates: Position(place.lon, place.lat)),
           textField: place.name,
           textSize: 12,
           textOffset: [0.0, 1.2],
-          iconImage: "marker-15",
-          iconColor: iconColor,
+          iconImage: iconImage,
         ),
       );
       _placeAnnotations.add(annotation);
@@ -358,7 +357,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
 
     final place = _placesByAnnotationId[annotation.id];
     if (place == null) return true;
-    if (_claimedPlaceIds.contains(place.id)) {
+    
+    final claimed = _claimedPlaceIds.contains(place.id);
+    if (claimed) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Punkt już odebrany'),
@@ -368,34 +369,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       return true;
     }
 
-    final pos = _lastKnownPosition;
-    if (pos == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Brak bieżącej lokalizacji'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return true;
-    }
-
-    final distance = geo.Geolocator.distanceBetween(
-      pos.latitude,
-      pos.longitude,
-      place.lat,
-      place.lon,
-    );
-
-    if (distance > place.radiusMeters) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Podejdź bliżej, aby odebrać'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return true;
-    }
-
+    // Pozwala odblokowywać bez bliskości
     showModalBottomSheet(
       context: context,
       builder: (ctx) {
@@ -438,14 +412,16 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     }
 
     _claimedPlaceIds.add(place.id);
-    annotation.iconColor = Colors.grey.shade500.value;
+    
+    // Zmienia ikonkę na yes_pin_map
+    annotation.iconImage = "yes_pin_map";
     await _placeManager?.update(annotation);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Punkt został odebrany'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text('🎉 ${place.name} zostało odblokowane!'),
+          duration: const Duration(seconds: 3),
         ),
       );
     }

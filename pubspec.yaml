@@ -68,6 +68,8 @@ flutter:
     - logowanie-ikona.jpeg
     - chomik-loading.jpeg
     - .env
+    - assets/images/pin_map.svg
+    - assets/images/yes_pin_map.svg
 
 flutter_icons:
   android: true

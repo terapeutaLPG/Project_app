@@ -1,0 +1,6 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pin shape -->
+  <path d="M24 4C15.2 4 8 11.2 8 20C8 32 24 44 24 44C24 44 40 32 40 20C40 11.2 32.8 4 24 4Z" fill="#FF6B6B" stroke="#C92A2A" stroke-width="2"/>
+  <!-- Center circle -->
+  <circle cx="24" cy="20" r="6" fill="white" stroke="#FF6B6B" stroke-width="1.5"/>
+</svg>
