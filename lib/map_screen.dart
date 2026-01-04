@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'dart:async';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -13,6 +14,9 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   MapboxMap? mapboxMap;
   bool _locationPermissionGranted = false;
+  PointAnnotationManager? _pointAnnotationManager;
+  PointAnnotation? _userLocationMarker;
+  StreamSubscription<geo.Position>? _positionStreamSubscription;
 
   @override
   void initState() {
@@ -22,6 +26,69 @@ class _MapScreenState extends State<MapScreen> {
       MapboxOptions.setAccessToken(token);
     }
     _checkAndRequestLocationPermission();
+  }
+
+  @override
+  void dispose() {
+    _positionStreamSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _startLocationTracking() async {
+    if (!_locationPermissionGranted) return;
+
+    // Utwórz menedżer adnotacji punktowych
+    if (mapboxMap != null && _pointAnnotationManager == null) {
+      _pointAnnotationManager = await mapboxMap!.annotations.createPointAnnotationManager();
+    }
+
+    // Pobierz aktualną pozycję i wycentruj mapę
+    try {
+      final position = await geo.Geolocator.getCurrentPosition();
+      _updateUserLocationMarker(position.latitude, position.longitude);
+      
+      // Wycentruj mapę na użytkowniku
+      mapboxMap?.flyTo(
+        CameraOptions(
+          center: Point(coordinates: Position(position.longitude, position.latitude)),
+          zoom: 16.0,
+        ),
+        MapAnimationOptions(duration: 1000),
+      );
+    } catch (e) {
+      debugPrint('Błąd pobierania pozycji: $e');
+    }
+
+    // Subskrybuj strumień pozycji w czasie rzeczywistym
+    const locationSettings = geo.LocationSettings(
+      accuracy: geo.LocationAccuracy.high,
+      distanceFilter: 10, // Aktualizuj co 10 metrów
+    );
+
+    _positionStreamSubscription = geo.Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen((geo.Position position) {
+      _updateUserLocationMarker(position.latitude, position.longitude);
+    });
+  }
+
+  Future<void> _updateUserLocationMarker(double lat, double lon) async {
+    if (_pointAnnotationManager == null) return;
+
+    // Usuń stary marker jeśli istnieje
+    if (_userLocationMarker != null) {
+      await _pointAnnotationManager!.delete(_userLocationMarker!);
+    }
+
+    // Dodaj nowy marker na aktualnej pozycji
+    final pointAnnotationOptions = PointAnnotationOptions(
+      geometry: Point(coordinates: Position(lon, lat)),
+      iconSize: 1.5,
+      iconImage: "user-location-icon",
+      iconColor: Colors.blue.value,
+    );
+
+    _userLocationMarker = await _pointAnnotationManager!.create(pointAnnotationOptions);
   }
 
   Future<void> _checkAndRequestLocationPermission() async {
@@ -87,10 +154,17 @@ class _MapScreenState extends State<MapScreen> {
         ),
       );
     }
+
+    // Rozpocznij śledzenie lokalizacji
+    _startLocationTracking();
   }
 
   _onMapCreated(MapboxMap map) {
     mapboxMap = map;
+    // Jeśli uprawnienia już przyznane, uruchom śledzenie
+    if (_locationPermissionGranted) {
+      _startLocationTracking();
+    }
   }
 
   @override
