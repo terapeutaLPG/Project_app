@@ -35,6 +35,8 @@ dependencies:
   firebase_core: ^3.5.0
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
+  flutter_dotenv: ^5.1.0
+  mapbox_maps_flutter: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +66,7 @@ flutter:
     - pin-map.jpeg
     - logowanie-ikona.jpeg
     - chomik-loading.jpeg
+    - .env
 
 flutter_icons:
   android: true
