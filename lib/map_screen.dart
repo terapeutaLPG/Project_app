@@ -4,6 +4,8 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'services/tile_service.dart';
 import 'models/tile_model.dart';
+import 'models/tile_calculator.dart';
+import 'dart:async';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -18,6 +20,8 @@ class _MapScreenState extends State<MapScreen> {
   final TileService _tileService = TileService();
   PolygonAnnotationManager? _polygonManager;
   final Map<String, PolygonAnnotation> _tilePolygons = {};
+  StreamSubscription<geo.Position>? _positionStreamSubscription;
+  String? _currentTileId;
 
   @override
   void initState() {
@@ -27,6 +31,12 @@ class _MapScreenState extends State<MapScreen> {
       MapboxOptions.setAccessToken(token);
     }
     _checkAndRequestLocationPermission();
+  }
+
+  @override
+  void dispose() {
+    _positionStreamSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _enableLocationTracking() async {
@@ -48,6 +58,8 @@ class _MapScreenState extends State<MapScreen> {
         ),
         MapAnimationOptions(duration: 1000),
       );
+      
+      await _processLocation(position.latitude, position.longitude);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -58,6 +70,37 @@ class _MapScreenState extends State<MapScreen> {
         );
       }
     }
+    
+    _startLocationStream();
+  }
+
+  void _startLocationStream() {
+    const locationSettings = geo.LocationSettings(
+      accuracy: geo.LocationAccuracy.high,
+      distanceFilter: 5,
+    );
+
+    _positionStreamSubscription = geo.Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen((geo.Position position) {
+      _processLocation(position.latitude, position.longitude);
+    });
+  }
+
+  Future<void> _processLocation(double lat, double lon) async {
+    final tileId = TileCalculator.calculateTileId(lat, lon);
+    
+    if (_currentTileId == tileId) return;
+    
+    _currentTileId = tileId;
+    
+    final isDiscovered = await _tileService.isTileDiscovered(tileId);
+    if (isDiscovered) return;
+    
+    await _tileService.saveTile(lat, lon);
+    
+    final tile = TileCalculator.getTileBounds(lat, lon);
+    await _drawTileOnMap(tile);
   }
 
   Future<void> _checkAndRequestLocationPermission() async {
