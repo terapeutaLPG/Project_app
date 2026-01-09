@@ -39,7 +39,7 @@ dependencies:
   mapbox_maps_flutter: ^2.3.0
   geolocator: ^13.0.2
   audioplayers: ^6.1.0
-  vibration: ^1.7.8
+  vibration: ^3.1.5
 
 dev_dependencies:
   flutter_test:

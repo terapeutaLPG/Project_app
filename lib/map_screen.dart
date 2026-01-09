@@ -47,6 +47,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   int _discoveredTilesCount = 0;
   geo.Position? _lastKnownPosition;
   String? _selectedPlaceId;
+  bool _soundsEnabled = true;
 
   @override
   void initState() {
@@ -144,22 +145,25 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       _lastKnownPosition = position;
       _processLocation(position.latitude, position.longitude);
       _checkProximity(position);
-      if (_selectedPlaceId != null) {
-        final place = _places.firstWhere(
-          (p) => p.id == _selectedPlaceId,
-          orElse: () => _places.isEmpty ? Place(id: '', name: '', lat: 0, lon: 0, radiusMeters: 0, points: 0) : _places.first,
-        );
-        if (place.id.isNotEmpty) {
-          final distance = geo.Geolocator.distanceBetween(
-            position.latitude,
-            position.longitude,
-            place.lat,
-            place.lon,
-          );
-          _proximityService.checkProximityAndTrigger(distance, _selectedPlaceId!);
-        }
-      }
+      _updateProximitySignals(position);
     });
+  }
+
+  void _updateProximitySignals(geo.Position position) {
+    if (_selectedPlaceId == null) return;
+
+    final placeIndex = _places.indexWhere((p) => p.id == _selectedPlaceId);
+    if (placeIndex == -1) return;
+
+    final place = _places[placeIndex];
+    final distance = geo.Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      place.lat,
+      place.lon,
+    );
+
+    _proximityService.checkProximityAndTrigger(distance, _selectedPlaceId!);
   }
 
   void _checkProximity(geo.Position pos) {
@@ -385,6 +389,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     if (place == null) return true;
     
     _selectedPlaceId = place.id;
+    _proximityService.setEnabled(_soundsEnabled);
     _proximityService.resetProximityState(place.id);
     
     final claimed = _claimedPlaceIds.contains(place.id);
@@ -556,6 +561,18 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
           ],
         ),
         actions: [
+          IconButton(
+            icon: Icon(
+              _soundsEnabled ? Icons.volume_up : Icons.volume_off,
+              color: _soundsEnabled ? Colors.green : Colors.red,
+            ),
+            onPressed: () {
+              setState(() {
+                _soundsEnabled = !_soundsEnabled;
+                _proximityService.setEnabled(_soundsEnabled);
+              });
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: _showClearMapDialog,
