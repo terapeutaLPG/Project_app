@@ -10,6 +10,7 @@ class ProximityService {
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _currentSelectedPlaceId;
+  bool _isEnabled = true;
 
   final Map<String, Set<int>> _triggeredThresholds = {};
 
@@ -17,14 +18,24 @@ class ProximityService {
     await _audioPlayer.setVolume(1.0);
   }
 
+  void setEnabled(bool enabled) {
+    _isEnabled = enabled;
+  }
+
+  bool getIsEnabled() => _isEnabled;
+
   void resetProximityState(String placeId) {
     _currentSelectedPlaceId = placeId;
-    _triggeredThresholds[placeId] = {};
+    if (!_triggeredThresholds.containsKey(placeId)) {
+      _triggeredThresholds[placeId] = {};
+    } else {
+      _triggeredThresholds[placeId]!.clear();
+    }
   }
 
   void resetProximityStateForDistance() {
-    for (var thresholds in _triggeredThresholds.values) {
-      thresholds.clear();
+    if (_currentSelectedPlaceId != null && _triggeredThresholds.containsKey(_currentSelectedPlaceId)) {
+      _triggeredThresholds[_currentSelectedPlaceId]!.clear();
     }
   }
 
@@ -32,7 +43,7 @@ class ProximityService {
     double distanceMeters,
     String placeId,
   ) async {
-    if (_currentSelectedPlaceId == null || _currentSelectedPlaceId != placeId) {
+    if (!_isEnabled || _currentSelectedPlaceId == null || _currentSelectedPlaceId != placeId) {
       return;
     }
 
@@ -46,22 +57,22 @@ class ProximityService {
     if (distanceMeters <= _threshold5m &&
         !_triggeredThresholds[placeId]!.contains(5)) {
       _triggeredThresholds[placeId]!.add(5);
-      await _playSound('assets/sfx/ping_close.mp3');
+      await _playSound('assets/sfx/ping_close.wav');
       await _vibrate(100, [0, 100, 100]);
     } else if (distanceMeters <= _threshold10m &&
         !_triggeredThresholds[placeId]!.contains(10)) {
       _triggeredThresholds[placeId]!.add(10);
-      await _playSound('assets/sfx/ping.mp3');
+      await _playSound('assets/sfx/ping.wav');
       await _vibrate(80, [0, 80, 80]);
     } else if (distanceMeters <= _threshold30m &&
         !_triggeredThresholds[placeId]!.contains(30)) {
       _triggeredThresholds[placeId]!.add(30);
-      await _playSound('assets/sfx/ping.mp3');
+      await _playSound('assets/sfx/ping.wav');
       await _vibrate(60, [0, 60, 60]);
     } else if (distanceMeters <= _threshold80m &&
         !_triggeredThresholds[placeId]!.contains(80)) {
       _triggeredThresholds[placeId]!.add(80);
-      await _playSound('assets/sfx/ping.mp3');
+      await _playSound('assets/sfx/ping.wav');
       await _vibrate(40, [0, 40, 40]);
     }
   }
