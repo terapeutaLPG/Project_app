@@ -6,6 +6,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'services/tile_service.dart';
 import 'services/place_service.dart';
+import 'services/proximity_service.dart';
 import 'models/tile_model.dart';
 import 'models/tile_calculator.dart';
 import 'models/place.dart';
@@ -32,6 +33,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   MapboxMap? mapboxMap;
   bool _locationPermissionGranted = false;
   final TileService _tileService = TileService();
+  final ProximityService _proximityService = ProximityService();
   PolygonAnnotationManager? _polygonManager;
   final Map<String, PolygonAnnotation> _tilePolygons = {};
   PointAnnotationManager? _placeManager;
@@ -44,6 +46,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   String? _currentTileId;
   int _discoveredTilesCount = 0;
   geo.Position? _lastKnownPosition;
+  String? _selectedPlaceId;
 
   @override
   void initState() {
@@ -53,12 +56,14 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     if (token.isNotEmpty) {
       MapboxOptions.setAccessToken(token);
     }
+    _proximityService.initialize();
     _checkAndRequestLocationPermission();
   }
 
   @override
   void dispose() {
     _positionStreamSubscription?.cancel();
+    _proximityService.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -139,6 +144,21 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       _lastKnownPosition = position;
       _processLocation(position.latitude, position.longitude);
       _checkProximity(position);
+      if (_selectedPlaceId != null) {
+        final place = _places.firstWhere(
+          (p) => p.id == _selectedPlaceId,
+          orElse: () => _places.isEmpty ? Place(id: '', name: '', lat: 0, lon: 0, radiusMeters: 0, points: 0) : _places.first,
+        );
+        if (place.id.isNotEmpty) {
+          final distance = geo.Geolocator.distanceBetween(
+            position.latitude,
+            position.longitude,
+            place.lat,
+            place.lon,
+          );
+          _proximityService.checkProximityAndTrigger(distance, _selectedPlaceId!);
+        }
+      }
     });
   }
 
@@ -364,6 +384,9 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     final place = _placesByAnnotationId[annotation.id];
     if (place == null) return true;
     
+    _selectedPlaceId = place.id;
+    _proximityService.resetProximityState(place.id);
+    
     final claimed = _claimedPlaceIds.contains(place.id);
     
     final pos = _lastKnownPosition;
@@ -474,10 +497,11 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     }
 
     _claimedPlaceIds.add(place.id);
+    _selectedPlaceId = null;
+    _proximityService.resetProximityStateForDistance();
     
-    // Zmienia ikonkę na zieloną
     annotation.iconColor = Colors.green.value;
-  annotation.textColor = Colors.green.value;
+    annotation.textColor = Colors.green.value;
     await _placeManager?.update(annotation);
 
     if (mounted) {
