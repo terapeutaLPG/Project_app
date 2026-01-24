@@ -1,5 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 
 class ProximityService {
   static const int _threshold300m = 300;
@@ -56,27 +57,31 @@ class ProximityService {
     if (distanceMeters <= _threshold100m &&
         !_triggeredThresholds[placeId]!.contains(100)) {
       _triggeredThresholds[placeId]!.add(100);
-      await _playSound('assets/sfx/ping_close.wav');
+      await _playSystemSound(AndroidSoundIDs.notification);
       await _vibrate(200);
     } else if (distanceMeters <= _threshold200m &&
         !_triggeredThresholds[placeId]!.contains(200)) {
       _triggeredThresholds[placeId]!.add(200);
-      await _playSound('assets/sfx/ping.wav');
+      await _playSystemSound(AndroidSoundIDs.alarm);
       await _vibrate(150);
     } else if (distanceMeters <= _threshold300m &&
         !_triggeredThresholds[placeId]!.contains(300)) {
       _triggeredThresholds[placeId]!.add(300);
-      await _playSound('assets/sfx/ping.wav');
+      await _playSystemSound(AndroidSoundIDs.ringtone);
       await _vibrate(100);
     }
   }
 
-  Future<void> _playSound(String assetPath) async {
+  Future<void> _playSystemSound(int soundId) async {
     try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource(assetPath));
+      FlutterRingtonePlayer().play(
+        android: AndroidSounds.notification,
+        ios: IosSounds.glass,
+        looping: false,
+        volume: 1.0,
+      );
     } catch (e) {
-      print('Error playing sound: $e');
+      print('Error playing system sound: $e');
     }
   }
 
@@ -93,4 +98,10 @@ class ProximityService {
   void dispose() {
     _audioPlayer.dispose();
   }
+}
+
+class AndroidSoundIDs {
+  static const int notification = 1;
+  static const int alarm = 2;
+  static const int ringtone = 3;
 }
