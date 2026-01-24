@@ -149,7 +149,67 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       _processLocation(position.latitude, position.longitude);
       _checkProximity(position);
       _updateProximitySignals(position);
+      _checkAndStartPeriodicSound(position);
     });
+  }
+
+  void _checkAndStartPeriodicSound(geo.Position position) {
+    Place? nearbyPlace;
+    double nearbyDistance = double.infinity;
+
+    for (final place in _places) {
+      if (_claimedPlaceIds.contains(place.id)) continue;
+
+      final distance = geo.Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        place.lat,
+        place.lon,
+      );
+
+      if (distance <= 100 && distance < nearbyDistance) {
+        nearbyDistance = distance;
+        nearbyPlace = place;
+      }
+    }
+
+    if (nearbyPlace != null) {
+      _startPeriodicSound();
+    } else {
+      _stopPeriodicSound();
+    }
+  }
+
+  void _startPeriodicSound() {
+    if (_proximityTimer != null && _proximityTimer!.isActive) return;
+
+    _proximityTimer = Timer.periodic(const Duration(minutes: 1), (timer) async {
+      if (!_soundsEnabled || _lastKnownPosition == null) return;
+
+      for (final place in _places) {
+        if (_claimedPlaceIds.contains(place.id)) continue;
+
+        final distance = geo.Geolocator.distanceBetween(
+          _lastKnownPosition!.latitude,
+          _lastKnownPosition!.longitude,
+          place.lat,
+          place.lon,
+        );
+
+        if (distance <= 100) {
+          _proximityService.playProximitySound(
+            AndroidSounds.notification,
+            IosSounds.triTone,
+          );
+          break;
+        }
+      }
+    });
+  }
+
+  void _stopPeriodicSound() {
+    _proximityTimer?.cancel();
+    _proximityTimer = null;
   }
 
   void _updateProximitySignals(geo.Position position) {
