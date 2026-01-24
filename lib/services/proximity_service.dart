@@ -91,6 +91,10 @@ class ProximityService {
     }
   }
 
+  Future<void> playProximitySound(AndroidSound android, IosSound ios) async {
+    await _playSystemSound(android, ios);
+  }
+
   void dispose() {
   }
 }

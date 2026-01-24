@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'services/tile_service.dart';
 import 'services/place_service.dart';
 import 'services/proximity_service.dart';
@@ -401,6 +402,16 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     }
 
     if (nearestPlace != null && mounted) {
+      if (_soundsEnabled) {
+        if (nearestDistance <= 100) {
+          _proximityService.playProximitySound(AndroidSounds.notification, IosSounds.triTone);
+        } else if (nearestDistance <= 200) {
+          _proximityService.playProximitySound(AndroidSounds.alarm, IosSounds.glass);
+        } else {
+          _proximityService.playProximitySound(AndroidSounds.ringtone, IosSounds.electronic);
+        }
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
