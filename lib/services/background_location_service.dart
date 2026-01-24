@@ -9,6 +9,7 @@ class BackgroundLocationService {
   StreamSubscription<geo.Position>? _positionStreamSubscription;
   List<Place> _places = [];
   Set<String> _claimedPlaceIds = {};
+  Timer? _refreshTimer;
 
   factory BackgroundLocationService() {
     return _instance;
@@ -19,16 +20,11 @@ class BackgroundLocationService {
   Future<void> startBackgroundTracking() async {
     if (_positionStreamSubscription != null) return;
 
-    final placeService = PlaceService();
-    final result = await placeService.fetchPlacesOrFallback();
-    _places = result.places;
-    _claimedPlaceIds = !result.usedFallback
-        ? await placeService.getClaimedPlaceIds()
-        : {};
+    await _refreshPlaces();
 
     const locationSettings = geo.LocationSettings(
       accuracy: geo.LocationAccuracy.high,
-      distanceFilter: 10,
+      distanceFilter: 5,
     );
 
     _positionStreamSubscription = geo.Geolocator.getPositionStream(
@@ -36,6 +32,23 @@ class BackgroundLocationService {
     ).listen((geo.Position position) {
       _checkBackgroundProximity(position);
     });
+
+    _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) async {
+      await _refreshPlaces();
+    });
+  }
+
+  Future<void> _refreshPlaces() async {
+    try {
+      final placeService = PlaceService();
+      final result = await placeService.fetchPlacesOrFallback();
+      _places = result.places;
+      _claimedPlaceIds = !result.usedFallback
+          ? await placeService.getClaimedPlaceIds()
+          : {};
+    } catch (e) {
+      print('Error refreshing places: $e');
+    }
   }
 
   void _checkBackgroundProximity(geo.Position position) {
@@ -64,6 +77,8 @@ class BackgroundLocationService {
   void stopBackgroundTracking() {
     _positionStreamSubscription?.cancel();
     _positionStreamSubscription = null;
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
   }
 
   void dispose() {

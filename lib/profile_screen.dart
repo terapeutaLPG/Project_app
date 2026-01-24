@@ -25,6 +25,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadBackgroundSoundsSettings();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> _loadBackgroundSoundsSettings() async {
     final enabled = await _settingsService.isBackgroundSoundsEnabled();
     if (mounted) {
