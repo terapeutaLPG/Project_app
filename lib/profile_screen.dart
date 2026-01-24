@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
+import 'services/settings_service.dart';
+import 'services/background_location_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -9,14 +11,27 @@ class ProfileScreen extends StatefulWidget {
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
-//d
+
 class _ProfileScreenState extends State<ProfileScreen> {
   late Future<Map<String, dynamic>> _profileFuture;
+  bool _backgroundSoundsEnabled = false;
+  final SettingsService _settingsService = SettingsService();
+  final BackgroundLocationService _backgroundLocationService = BackgroundLocationService();
 
   @override
   void initState() {
     super.initState();
     _profileFuture = _fetchProfile();
+    _loadBackgroundSoundsSettings();
+  }
+
+  Future<void> _loadBackgroundSoundsSettings() async {
+    final enabled = await _settingsService.isBackgroundSoundsEnabled();
+    if (mounted) {
+      setState(() {
+        _backgroundSoundsEnabled = enabled;
+      });
+    }
   }
 
   Future<Map<String, dynamic>> _fetchProfile() async {
@@ -219,6 +234,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ListTile(
                 title: const Text('Ostatnia zmiana profilu'),
                 subtitle: Text(_formatDate(data['updatedAt'])),
+              ),
+              const Divider(),
+              const SizedBox(height: 20),
+              SwitchListTile(
+                title: const Text('Dźwięki w tle'),
+                subtitle: const Text('Aplikacja będzie śledzić lokalizację w tle'),
+                value: _backgroundSoundsEnabled,
+                onChanged: (bool value) async {
+                  setState(() {
+                    _backgroundSoundsEnabled = value;
+                  });
+                  await _settingsService.setBackgroundSoundsEnabled(value);
+                  
+                  if (value) {
+                    await _backgroundLocationService.startBackgroundTracking();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Dźwięki w tle włączone'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  } else {
+                    _backgroundLocationService.stopBackgroundTracking();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Dźwięki w tle wyłączone'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  }
+                },
               ),
               const Divider(),
               const SizedBox(height: 20),
