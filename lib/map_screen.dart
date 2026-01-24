@@ -611,6 +611,15 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       return;
     }
 
+    if (_soundsEnabled) {
+      FlutterRingtonePlayer().play(
+        android: AndroidSounds.notification,
+        ios: IosSounds.sentMessage,
+        looping: false,
+        volume: 1.0,
+      );
+    }
+
     _claimedPlaceIds.add(place.id);
     _selectedPlaceId = null;
     _proximityService.resetProximityStateForDistance();
