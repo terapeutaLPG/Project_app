@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -135,6 +136,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return '-';
   }
 
+  Future<void> _testSound(String label, AndroidSounds android, IosSounds ios) async {
+    try {
+      FlutterRingtonePlayer().play(
+        android: android,
+        ios: ios,
+        looping: false,
+        volume: 1.0,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Odtwarzanie: $label')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Błąd odtwarzania: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -196,6 +219,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ListTile(
                 title: const Text('Ostatnia zmiana profilu'),
                 subtitle: Text(_formatDate(data['updatedAt'])),
+              ),
+              const Divider(),
+              const SizedBox(height: 20),
+              const Text(
+                'Test dźwięków alertów',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                onPressed: () => _testSound('3 kafelki (~300m)', AndroidSounds.ringtone, IosSounds.electronic),
+                icon: const Icon(Icons.notifications),
+                label: const Text('Dźwięk: 3 kafelki (~300m)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                onPressed: () => _testSound('2 kafelki (~200m)', AndroidSounds.alarm, IosSounds.glass),
+                icon: const Icon(Icons.notifications_active),
+                label: const Text('Dźwięk: 2 kafelki (~200m)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  padding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                onPressed: () => _testSound('1 kafelek (~100m)', AndroidSounds.notification, IosSounds.triTone),
+                icon: const Icon(Icons.notifications_outlined),
+                label: const Text('Dźwięk: 1 kafelek (~100m)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.all(12),
+                ),
               ),
             ],
           );
