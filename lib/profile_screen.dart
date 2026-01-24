@@ -136,7 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return '-';
   }
 
-  Future<void> _testSound(String label, AndroidSounds android, IosSounds ios) async {
+  Future<void> _testSound(String label, AndroidSound android, IosSound ios) async {
     try {
       FlutterRingtonePlayer().play(
         android: android,

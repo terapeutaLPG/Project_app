@@ -68,7 +68,7 @@ class ProximityService {
     }
   }
 
-  Future<void> _playSystemSound(AndroidSounds android, IosSounds ios) async {
+  Future<void> _playSystemSound(AndroidSound android, IosSound ios) async {
     try {
       FlutterRingtonePlayer().play(
         android: android,
