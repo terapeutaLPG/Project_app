@@ -48,6 +48,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   geo.Position? _lastKnownPosition;
   String? _selectedPlaceId;
   bool _soundsEnabled = true;
+  Timer? _proximityTimer;
 
   @override
   void initState() {
@@ -64,6 +65,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     _positionStreamSubscription?.cancel();
+    _proximityTimer?.cancel();
     _proximityService.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -371,6 +373,43 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       );
       _placeAnnotations.add(annotation);
       _placesByAnnotationId[annotation.id] = place;
+    }
+
+    _checkNearbyPlaces();
+  }
+
+  Future<void> _checkNearbyPlaces() async {
+    if (_lastKnownPosition == null || _places.isEmpty) return;
+
+    Place? nearestPlace;
+    double nearestDistance = double.infinity;
+
+    for (final place in _places) {
+      if (_claimedPlaceIds.contains(place.id)) continue;
+
+      final distance = geo.Geolocator.distanceBetween(
+        _lastKnownPosition!.latitude,
+        _lastKnownPosition!.longitude,
+        place.lat,
+        place.lon,
+      );
+
+      if (distance <= 300 && distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestPlace = place;
+      }
+    }
+
+    if (nearestPlace != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Punkt w pobliżu: ${nearestPlace.name}\nOdległość: ${nearestDistance.toStringAsFixed(0)}m',
+          ),
+          duration: const Duration(seconds: 4),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   }
 
