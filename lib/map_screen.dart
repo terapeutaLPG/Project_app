@@ -219,6 +219,12 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     if (placeIndex == -1) return;
 
     final place = _places[placeIndex];
+    
+    if (_claimedPlaceIds.contains(place.id)) {
+      _selectedPlaceId = null;
+      return;
+    }
+
     final distance = geo.Geolocator.distanceBetween(
       position.latitude,
       position.longitude,
@@ -623,6 +629,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     _claimedPlaceIds.add(place.id);
     _selectedPlaceId = null;
     _proximityService.resetProximityStateForDistance();
+    _stopPeriodicSound();
     
     annotation.iconColor = Colors.green.value;
     annotation.textColor = Colors.green.value;
