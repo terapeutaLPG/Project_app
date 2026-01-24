@@ -2,11 +2,9 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 
 class ProximityService {
-  static const int _threshold120m = 120;
-  static const int _threshold80m = 80;
-  static const int _threshold30m = 30;
-  static const int _threshold10m = 10;
-  static const int _threshold5m = 5;
+  static const int _threshold300m = 300;
+  static const int _threshold200m = 200;
+  static const int _threshold100m = 100;
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _currentSelectedPlaceId;
@@ -16,6 +14,7 @@ class ProximityService {
 
   Future<void> initialize() async {
     await _audioPlayer.setVolume(1.0);
+    await _audioPlayer.setReleaseMode(ReleaseMode.stop);
   }
 
   void setEnabled(bool enabled) {
@@ -47,51 +46,44 @@ class ProximityService {
       return;
     }
 
-    if (distanceMeters > _threshold120m) {
+    if (distanceMeters > _threshold300m) {
       resetProximityStateForDistance();
       return;
     }
 
     _triggeredThresholds.putIfAbsent(placeId, () => {});
 
-    if (distanceMeters <= _threshold5m &&
-        !_triggeredThresholds[placeId]!.contains(5)) {
-      _triggeredThresholds[placeId]!.add(5);
+    if (distanceMeters <= _threshold100m &&
+        !_triggeredThresholds[placeId]!.contains(100)) {
+      _triggeredThresholds[placeId]!.add(100);
       await _playSound('assets/sfx/ping_close.wav');
-      await _vibrate(100, [0, 100, 100]);
-    } else if (distanceMeters <= _threshold10m &&
-        !_triggeredThresholds[placeId]!.contains(10)) {
-      _triggeredThresholds[placeId]!.add(10);
+      await _vibrate(200);
+    } else if (distanceMeters <= _threshold200m &&
+        !_triggeredThresholds[placeId]!.contains(200)) {
+      _triggeredThresholds[placeId]!.add(200);
       await _playSound('assets/sfx/ping.wav');
-      await _vibrate(80, [0, 80, 80]);
-    } else if (distanceMeters <= _threshold30m &&
-        !_triggeredThresholds[placeId]!.contains(30)) {
-      _triggeredThresholds[placeId]!.add(30);
+      await _vibrate(150);
+    } else if (distanceMeters <= _threshold300m &&
+        !_triggeredThresholds[placeId]!.contains(300)) {
+      _triggeredThresholds[placeId]!.add(300);
       await _playSound('assets/sfx/ping.wav');
-      await _vibrate(60, [0, 60, 60]);
-    } else if (distanceMeters <= _threshold80m &&
-        !_triggeredThresholds[placeId]!.contains(80)) {
-      _triggeredThresholds[placeId]!.add(80);
-      await _playSound('assets/sfx/ping.wav');
-      await _vibrate(40, [0, 40, 40]);
+      await _vibrate(100);
     }
   }
 
   Future<void> _playSound(String assetPath) async {
     try {
+      await _audioPlayer.stop();
       await _audioPlayer.play(AssetSource(assetPath));
     } catch (e) {
       print('Error playing sound: $e');
     }
   }
 
-  Future<void> _vibrate(
-    int duration,
-    List<int> pattern,
-  ) async {
+  Future<void> _vibrate(int duration) async {
     try {
       if (await Vibration.hasVibrator() ?? false) {
-        await Vibration.vibrate(duration: duration, pattern: pattern);
+        await Vibration.vibrate(duration: duration);
       }
     } catch (e) {
       print('Error vibrating: $e');
