@@ -5,6 +5,8 @@ import 'package:flutter_application_1/login_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'services/place_service.dart';
+import 'services/settings_service.dart';
+import 'services/background_location_service.dart';
 import 'seed_places.dart';
 
 void main() async {
@@ -14,6 +16,15 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await SeedPlaces.seedPlacesIfEmpty();
+  
+  final settingsService = SettingsService();
+  final backgroundLocationService = BackgroundLocationService();
+  
+  final backgroundSoundsEnabled = await settingsService.isBackgroundSoundsEnabled();
+  if (backgroundSoundsEnabled) {
+    await backgroundLocationService.startBackgroundTracking();
+  }
+  
   runApp(const MapaEksploracjiApp());
 }
 
