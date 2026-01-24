@@ -1,4 +1,3 @@
-import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 
@@ -7,15 +6,12 @@ class ProximityService {
   static const int _threshold200m = 200;
   static const int _threshold100m = 100;
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
   String? _currentSelectedPlaceId;
   bool _isEnabled = true;
 
   final Map<String, Set<int>> _triggeredThresholds = {};
 
   Future<void> initialize() async {
-    await _audioPlayer.setVolume(1.0);
-    await _audioPlayer.setReleaseMode(ReleaseMode.stop);
   }
 
   void setEnabled(bool enabled) {
@@ -57,26 +53,26 @@ class ProximityService {
     if (distanceMeters <= _threshold100m &&
         !_triggeredThresholds[placeId]!.contains(100)) {
       _triggeredThresholds[placeId]!.add(100);
-      await _playSystemSound(AndroidSoundIDs.notification);
+      await _playSystemSound(AndroidSounds.notification, IosSounds.triTone);
       await _vibrate(200);
     } else if (distanceMeters <= _threshold200m &&
         !_triggeredThresholds[placeId]!.contains(200)) {
       _triggeredThresholds[placeId]!.add(200);
-      await _playSystemSound(AndroidSoundIDs.alarm);
+      await _playSystemSound(AndroidSounds.alarm, IosSounds.glass);
       await _vibrate(150);
     } else if (distanceMeters <= _threshold300m &&
         !_triggeredThresholds[placeId]!.contains(300)) {
       _triggeredThresholds[placeId]!.add(300);
-      await _playSystemSound(AndroidSoundIDs.ringtone);
+      await _playSystemSound(AndroidSounds.ringtone, IosSounds.electronic);
       await _vibrate(100);
     }
   }
 
-  Future<void> _playSystemSound(int soundId) async {
+  Future<void> _playSystemSound(AndroidSounds android, IosSounds ios) async {
     try {
       FlutterRingtonePlayer().play(
-        android: AndroidSounds.notification,
-        ios: IosSounds.glass,
+        android: android,
+        ios: ios,
         looping: false,
         volume: 1.0,
       );
@@ -96,12 +92,5 @@ class ProximityService {
   }
 
   void dispose() {
-    _audioPlayer.dispose();
   }
-}
-
-class AndroidSoundIDs {
-  static const int notification = 1;
-  static const int alarm = 2;
-  static const int ringtone = 3;
 }
