@@ -4,6 +4,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/place.dart';
 
+class ClaimPlaceResult {
+  final bool success;
+  final bool alreadyClaimed;
+  final String? error;
+
+  const ClaimPlaceResult({
+    required this.success,
+    this.alreadyClaimed = false,
+    this.error,
+  });
+}
+
 class PlaceFetchResult {
   final List<Place> places;
   final bool usedFallback;
@@ -50,33 +62,23 @@ class PlaceService {
     }
   }
 
-  Future<bool> claimPlace(String placeId, int gainedPoints) async {
+  Future<ClaimPlaceResult> claimPlace(String placeId, int gainedPoints) async {
     final user = _auth.currentUser;
-    if (user == null) return false;
+    if (user == null) {
+      return const ClaimPlaceResult(success: false, error: 'Brak zalogowanego użytkownika');
+    }
     try {
       final userRef = _firestore.collection('users').doc(user.uid);
       final placeRef = userRef.collection('claimed_places').doc(placeId);
 
-      final claimed = await _firestore.runTransaction<bool>((tx) async {
+      final claimed = await _firestore.runTransaction<ClaimPlaceResult>((tx) async {
+        // READS FIRST (per Firestore requirements)
         final claimedSnap = await tx.get(placeRef);
+        final userSnap = await tx.get(userRef);
         if (claimedSnap.exists) {
-          return false;
+          return const ClaimPlaceResult(success: false, alreadyClaimed: true);
         }
 
-        tx.set(placeRef, {
-          'claimedAt': FieldValue.serverTimestamp(),
-          'gainedPoints': gainedPoints,
-          'placeId': placeId,
-          'userId': user.uid,
-        }, SetOptions(merge: true));
-
-        // Keep legacy aggregate list in sync for older reads
-        final claimedListRef = _firestore.collection('claimed_places').doc(user.uid);
-        tx.set(claimedListRef, {
-          'placeIds': FieldValue.arrayUnion([placeId]),
-        }, SetOptions(merge: true));
-
-        final userSnap = await tx.get(userRef);
         final data = userSnap.data() ?? {};
         final currentTotal = (data['totalPoints'] as num?)?.toInt() ?? 0;
         final currentLevel = (data['level'] as num?)?.toInt() ?? 1;
@@ -103,13 +105,29 @@ class PlaceService {
           updateData['createdAt'] = FieldValue.serverTimestamp();
         }
 
+        // WRITES AFTER ALL READS
+        tx.set(placeRef, {
+          'claimedAt': FieldValue.serverTimestamp(),
+          'gainedPoints': gainedPoints,
+          'placeId': placeId,
+          'userId': user.uid,
+        }, SetOptions(merge: true));
+
+        // Keep legacy aggregate list in sync for older reads
+        final claimedListRef = _firestore.collection('claimed_places').doc(user.uid);
+        tx.set(claimedListRef, {
+          'placeIds': FieldValue.arrayUnion([placeId]),
+        }, SetOptions(merge: true));
+
         tx.set(userRef, updateData, SetOptions(merge: true));
-        return true;
+        return const ClaimPlaceResult(success: true);
       });
 
       return claimed;
-    } catch (_) {
-      return false;
+    } on FirebaseException catch (e) {
+      return ClaimPlaceResult(success: false, error: e.message ?? e.code);
+    } catch (e) {
+      return ClaimPlaceResult(success: false, error: e.toString());
     }
   }
 

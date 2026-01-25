@@ -662,13 +662,32 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
 
   Future<void> _claimPlace(Place place, PointAnnotation annotation) async {
     final placeService = PlaceService();
-    final ok = await placeService.claimPlace(place.id, place.points);
-    if (!ok) {
+    final result = await placeService.claimPlace(place.id, place.points);
+    if (!result.success) {
+      if (result.alreadyClaimed) {
+        _claimedPlaceIds.add(place.id);
+        annotation.iconColor = Colors.green.value;
+        annotation.textColor = Colors.green.value;
+        await _placeManager?.update(annotation);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('To miejsce zostało już odblokowane na tym koncie'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
       if (mounted) {
+        final msg = result.error?.isNotEmpty == true
+            ? 'Nie udało się odebrać: ${result.error}'
+            : 'Nie udało się odebrać';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Nie udało się odebrać'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(msg),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
