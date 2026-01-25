@@ -50,6 +50,8 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   String? _selectedPlaceId;
   bool _soundsEnabled = true;
   Timer? _proximityTimer;
+  DateTime? _lastNearbyNotification;
+  final Duration _nearbyNotificationCooldown = const Duration(seconds: 30);
 
   @override
   void initState() {
@@ -99,6 +101,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       
       _lastKnownPosition = position;
       await _processLocation(position.latitude, position.longitude);
+      await _checkNearbyPlaces(forceNotify: true);
       
       await mapboxMap!.flyTo(
         CameraOptions(
@@ -122,6 +125,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
         if (lastPosition != null) {
           _lastKnownPosition = lastPosition;
           await _processLocation(lastPosition.latitude, lastPosition.longitude);
+          await _checkNearbyPlaces(forceNotify: true);
           await mapboxMap!.flyTo(
             CameraOptions(
               center: Point(coordinates: Position(lastPosition.longitude, lastPosition.latitude)),
@@ -150,6 +154,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
       _checkProximity(position);
       _updateProximitySignals(position);
       _checkAndStartPeriodicSound(position);
+      _checkNearbyPlaces();
     });
   }
 
@@ -489,7 +494,7 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     _checkNearbyPlaces();
   }
 
-  Future<void> _checkNearbyPlaces() async {
+  Future<void> _checkNearbyPlaces({bool forceNotify = false}) async {
     if (_lastKnownPosition == null || _places.isEmpty) return;
 
     Place? nearestPlace;
@@ -512,25 +517,34 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
     }
 
     if (nearestPlace != null && mounted) {
-      if (_soundsEnabled) {
-        if (nearestDistance <= 100) {
-          _proximityService.playProximitySound(AndroidSounds.notification, IosSounds.triTone);
-        } else if (nearestDistance <= 200) {
-          _proximityService.playProximitySound(AndroidSounds.alarm, IosSounds.glass);
-        } else {
-          _proximityService.playProximitySound(AndroidSounds.ringtone, IosSounds.electronic);
-        }
-      }
+      final now = DateTime.now();
+      final canNotify = forceNotify ||
+          _lastNearbyNotification == null ||
+          now.difference(_lastNearbyNotification!) >= _nearbyNotificationCooldown;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Punkt w pobliżu: ${nearestPlace.name}\nOdległość: ${nearestDistance.toStringAsFixed(0)}m',
+      if (canNotify) {
+        _lastNearbyNotification = now;
+
+        if (_soundsEnabled) {
+          if (nearestDistance <= 100) {
+            _proximityService.playProximitySound(AndroidSounds.notification, IosSounds.triTone);
+          } else if (nearestDistance <= 200) {
+            _proximityService.playProximitySound(AndroidSounds.alarm, IosSounds.glass);
+          } else {
+            _proximityService.playProximitySound(AndroidSounds.ringtone, IosSounds.electronic);
+          }
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Punkt w pobliżu: ${nearestPlace.name}\nOdległość: ${nearestDistance.toStringAsFixed(0)}m',
+            ),
+            duration: const Duration(seconds: 4),
+            backgroundColor: Colors.orange,
           ),
-          duration: const Duration(seconds: 4),
-          backgroundColor: Colors.orange,
-        ),
-      );
+        );
+      }
     }
   }
 
