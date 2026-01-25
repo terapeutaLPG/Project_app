@@ -213,26 +213,70 @@ class _MapScreenState extends State<MapScreen> with WidgetsBindingObserver {
   }
 
   void _updateProximitySignals(geo.Position position) {
-    if (_selectedPlaceId == null) return;
+    Place? targetPlace;
 
-    final placeIndex = _places.indexWhere((p) => p.id == _selectedPlaceId);
-    if (placeIndex == -1) return;
+    if (_selectedPlaceId != null) {
+      final idx = _places.indexWhere((p) => p.id == _selectedPlaceId);
+      if (idx != -1) {
+        targetPlace = _places[idx];
+        if (_claimedPlaceIds.contains(targetPlace.id)) {
+          _selectedPlaceId = null;
+          targetPlace = null;
+        }
+      } else {
+        _selectedPlaceId = null;
+      }
+    }
 
-    final place = _places[placeIndex];
-    
-    if (_claimedPlaceIds.contains(place.id)) {
-      _selectedPlaceId = null;
+    targetPlace ??= _getNearestUnclaimedPlace(position, maxDistanceMeters: 300);
+
+    if (targetPlace == null) {
+      _proximityService.resetProximityStateForDistance();
       return;
+    }
+
+    if (_selectedPlaceId != targetPlace.id) {
+      _selectedPlaceId = targetPlace.id;
+      _proximityService.resetProximityState(targetPlace.id);
     }
 
     final distance = geo.Geolocator.distanceBetween(
       position.latitude,
       position.longitude,
-      place.lat,
-      place.lon,
+      targetPlace.lat,
+      targetPlace.lon,
     );
 
-    _proximityService.checkProximityAndTrigger(distance, _selectedPlaceId!);
+    if (distance > 300) {
+      _selectedPlaceId = null;
+      _proximityService.resetProximityStateForDistance();
+      return;
+    }
+
+    _proximityService.checkProximityAndTrigger(distance, targetPlace.id);
+  }
+
+  Place? _getNearestUnclaimedPlace(geo.Position position, {double maxDistanceMeters = 300}) {
+    Place? nearest;
+    double nearestDistance = maxDistanceMeters + 1;
+
+    for (final place in _places) {
+      if (_claimedPlaceIds.contains(place.id)) continue;
+
+      final distance = geo.Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        place.lat,
+        place.lon,
+      );
+
+      if (distance <= maxDistanceMeters && distance < nearestDistance) {
+        nearest = place;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearest;
   }
 
   void _checkProximity(geo.Position pos) {
